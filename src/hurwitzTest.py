@@ -1,10 +1,6 @@
+import threading
 from decimal import Decimal
 from fractions import Fraction
-
-
-class Error(Exception):
-    def __init__(self, message):
-        print(message)
 
 
 class Equation:
@@ -44,12 +40,12 @@ def extractTopZeros(coefficients):
         最高次の係数が0だった場合,取り除く.
     """
     if len(coefficients) == 0:
-        raise Error("given coefficients array is empty")
+        raise BaseException("given coefficients array is empty")
 
     """
     if len(coefficients) == 1:
-        raise Error(
-            "invalid coefficients Error. All of the coefficients are zeros")
+        raise BaseException(
+            "invalid coefficients BaseException. All of the coefficients are zeros")
     """
     # 最高次の係数が0でなかった場合,そのままreturn
     if (coefficients[0] != 0):
@@ -87,20 +83,21 @@ class HurwitzStabililtyTestForRealPolymonials(HurwitzBase):
 
         if toFraction:
             self.coefficients = convertToFraction(self.coefficients)
-        
+
         # check args
-        # 係数の政府の判定
-        if not areCoefficientsPositive(self.coefficients):
-            print("\n---WARNING---\ngiven coefficients contain non-positive values\nThis Polynomial is not Hurwitz Stable\n")
+        if not areCoefficientsSame(self.coefficients):
+            print("this is not hurwitz")
+        if self.coefficients[0] < 0:
+            self.coefficients = list(map(lambda x: -x, self.coefficients))
 
     def makePolynomialQ(self, coefficients):
         Q_coefficients = []
         isEven = True
 
         # 数値的処理
-        #mu = coefficients[0]/coefficients[1]
+        # mu = coefficients[0]/coefficients[1]
         if coefficients[1] == 0:
-            raise Error("zero divide")
+            raise BaseException("zero divide")
         mu = Fraction(coefficients[0], coefficients[1]
                       ) if self.toFraction else coefficients[0] / coefficients[1]
 
@@ -116,7 +113,7 @@ class HurwitzStabililtyTestForRealPolymonials(HurwitzBase):
         # 定数項を加える.
         Q_coefficients.append(coefficients[-1])
         if len(Q_coefficients) != len(coefficients) - 1:
-            raise Error("invalid degreen of Q")
+            raise BaseException("invalid degreen of Q")
         return Q_coefficients
 
     def firstStep(self, coefficients):
@@ -131,7 +128,7 @@ class HurwitzStabililtyTestForRealPolymonials(HurwitzBase):
         """
         assert number == len(P_array)-1, "mismatch number and array's length"
         if number != len(P_array)-1:
-            raise Error("mismatch number and array's length")
+            raise BaseException("mismatch number and array's length")
 
         coefficients = P_array[number]
         # メソッドの終了
@@ -153,13 +150,13 @@ class HurwitzStabililtyTestForRealPolymonials(HurwitzBase):
         isHurwitz = False
         count = 0
 
-        if (self.degree == 0 or self.degree == 1):
+        if self.degree == 0:
             return isHurwitz
 
         while (True):
             check = self.secondStep(P_array, count)
 
-            #print("coefficient positiveness", check)
+            # print("coefficient positiveness", check)
             if not check:
                 break
 
@@ -210,7 +207,7 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
             return False
         assert number == len(P_array)-1, "mismatch number and array's length"
         if number != len(P_array)-1:
-            raise Error("mismatch number and array's length")
+            raise BaseException("mismatch number and array's length")
 
         # Complex coefficients
         coefficients = P_array[number]
@@ -219,7 +216,7 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
         """
         if len(coefficients) < 2:
             return False
-            #Error("invalid coefficients length")
+            # BaseException("invalid coefficients length")
         """
         return (coefficients[0].real * coefficients[1].real +
                 coefficients[0].imag * coefficients[1].imag > 0)
@@ -228,7 +225,7 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
         # 最高次の係数が0でない
         if P_coefficients[0] == 0:
             # TODO
-            raise Error("zero division")
+            raise BaseException("zero division")
 
         mu = (1/P_coefficients[0])
         # Todo
@@ -250,7 +247,7 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
             pass
 
         if T_coefficients[1] == 0:
-            raise Error("zero divition")
+            raise BaseException("zero divition")
 
         mu = 1 / T_coefficients[1].real
 
@@ -301,7 +298,7 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
                     1 == 1, "mismatch last array's degree"
                 isHurwitz = True
                 break
-            #Error("invalid coefficients length")
+            # BaseException("invalid coefficients length")
             T_coefficients = self.thirdStep(P_array[-1])
             Q_coefficients = self.makePolynomialQ(T_coefficients)
             P_array = self.fourthStep(
@@ -310,3 +307,72 @@ class HurwitzStabililtyTestForComplexPolymonials(HurwitzBase):
             count += 1
         self.P_array = P_array
         return isHurwitz
+import time
+
+class Kharitonov:
+    def __init__(self, coefficient_ranges=[]):
+        """
+            a x^3 + b x^2 + c x^1 +d
+            -> [d,c,b,a] !!! hurwitzとはぎゃくになっていることにちゅういすべし
+        """
+
+        self.coefficient_ranges = coefficient_ranges.copy()
+        # 係数の校正
+        for i, each_range in enumerate(self.coefficient_ranges):
+            if type(each_range) != list:
+                raise BaseException("given ranges is not list")
+            if len(each_range) > 2:
+                raise BaseException("given range contain three")
+            if len(each_range) == 1:
+                self.coefficient_ranges[i].append(each_range[0])
+                continue
+            if each_range[0] > each_range[1]:
+                raise BaseException(
+                    "given range contain invalid range", each_range)
+
+    def make_sub_polynomials(self):
+        # make K1,K2
+        K1, K2, K3, K4 = [], [], [], []
+        degree = len(self.coefficient_ranges)-1
+        for i, each_range in enumerate(reversed(self.coefficient_ranges)):
+            if i % 2 == 0:
+                K1.append(each_range[0])
+                K2.append(each_range[0])
+                K3.append(each_range[1])
+                K4.append(each_range[1])
+                continue
+            K1.append(each_range[0])
+            K2.append(each_range[1])
+            K3.append(each_range[0])
+            K4.append(each_range[1])
+        return [K1, K2, K3, K4]
+
+    def HurwitzTest(self, coefficients, result, index):
+        if len(result) - 1 < index:
+            raise BaseException("given index is over result's length")
+        result[index] = HurwitzStabililtyTestForRealPolymonials(
+            coefficients).execute()
+        return None
+
+    def execute(self):
+        start=time.time()
+        threads = []
+        result = [None for i in range(4)]
+        for index, K in enumerate(self.make_sub_polynomials()):
+            t = threading.Thread(
+                target=self.HurwitzTest,
+                args=[K, result, index]
+            )
+            t.start()
+            threads.append(t)
+            #self.HurwitzTest(K, result, index)
+        
+        for each_thread in threads:
+            each_thread.join()
+        print(time.time()-start)
+        print(result, "\n")
+        if all(result):
+            print("this polynomials family is stable (^A^)")
+            return True
+        print("this polynomials family is not stable (T_T)")
+        return False

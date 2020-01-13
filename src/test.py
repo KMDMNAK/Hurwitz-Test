@@ -1,7 +1,7 @@
 
 import time
-from hurwitzTest2 import HurwitzStabililtyTestForComplexPolymonials, HurwitzStabililtyTestForRealPolymonials, Kharitonov
-from equation import solve
+from hurwitzTest import HurwitzStabililtyTestForComplexPolymonials, HurwitzStabililtyTestForRealPolymonials, Kharitonov
+from equation import solve_root
 
 """
 5x^4 + 3x^3 +1 x^2 +0 +5
