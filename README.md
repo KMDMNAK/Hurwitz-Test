@@ -9,7 +9,7 @@ Hurwitzについては[サイト](https://hurwitz-test.site)で実装してい�
 
 コマンドライン上で(windowsだったら Windows key + R -> cmd と入力)以下のコマンドを入力
 ```
-pip --no-cache-dir install -I git+https://github.com/KMDMNAK/Hurwitz-Test.git
+pip install git+https://github.com/KMDMNAK/Hurwitz-Test.git
 ```
 
 Pythonコマンドラインで以下を実行
@@ -24,5 +24,3 @@ H = HurwitzStabililtyTestForRealPolymonials(coefficients)
 result = H.execute() # true or false
 
 ```
-
-# 発表がんばろう!!!!!
