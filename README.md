@@ -19,7 +19,7 @@ Pythonコマンドラインで以下を実行
 
 from hurwitz.hurwitzTest import HurwitzStabililtyTestForRealPolymonials
 
-coefficients = [2,3,4,5,6,7]
+coefficients = [2,3,4,5,6,7] # 2x^5+3x^4+4x^3+5x^2+6x+7についての判定
 H = HurwitzStabililtyTestForRealPolymonials(coefficients)
 result = H.execute() # true or false
 
